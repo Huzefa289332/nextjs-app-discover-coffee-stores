@@ -3,18 +3,50 @@ import styles from '@/styles/Home.module.css';
 import Banner from '@/components/banner';
 import Image from 'next/image';
 import Card from '@/components/card';
-import coffeeStoresData from '@/data/coffee-stores.json';
+import { fetchCoffeeStores } from '@/lib/coffee-stores';
+import useTrackLocation from '@/hooks/use-track-location';
+import { useEffect, useState } from 'react';
 
 export async function getStaticProps() {
+  const coffeeStores = await fetchCoffeeStores(
+    '43.64990206482973,-79.38448035304708',
+    'coffee',
+    6
+  );
+
   return {
-    props: { coffeeStores: coffeeStoresData },
+    props: { coffeeStores },
   };
 }
 
 export default function Home(props) {
+  const [coffeeStores, setCoffeeStores] = useState([]);
+  const [coffeeStoresError, setCoffeeStoresError] = useState(null);
+
+  const { handleTrackLocation, latLng, locationErrorMsg, isFindingLocation } =
+    useTrackLocation();
+
   const handleOnBannerButtonClick = () => {
-    console.log('Click');
+    handleTrackLocation();
   };
+
+  useEffect(() => {
+    (async () => {
+      if (latLng) {
+        console.log({ latLng });
+        try {
+          const fetchedCoffeeStores = await fetchCoffeeStores(
+            latLng,
+            'coffee',
+            30
+          );
+          setCoffeeStores(fetchedCoffeeStores);
+        } catch (error) {
+          setCoffeeStoresError(error.message);
+        }
+      }
+    })();
+  }, [latLng]);
 
   return (
     <div className={styles.container}>
@@ -25,9 +57,12 @@ export default function Home(props) {
 
       <main className={styles.main}>
         <Banner
-          buttonText="View stores nearby"
+          buttonText={isFindingLocation ? 'Locating...' : 'View stores nearby'}
           handleOnClick={handleOnBannerButtonClick}
         />
+
+        {locationErrorMsg && <p>Something went wrong: {locationErrorMsg}</p>}
+        {coffeeStoresError && <p>Something went wrong: {coffeeStoresError}</p>}
 
         <div className={styles.heroImage}>
           <Image
@@ -38,26 +73,43 @@ export default function Home(props) {
           />
         </div>
 
-        <div className={styles.sectionWrapper}>
-          {(props.coffeeStores?.length || null) && (
-            <>
-              <h2 className={styles.heading2}>Toronto stores</h2>
-              <div className={styles.cardLayout}>
-                {props.coffeeStores?.map(coffeeStore => {
-                  return (
-                    <Card
-                      key={coffeeStore.id}
-                      name={coffeeStore.name}
-                      imgUrl={coffeeStore.imgUrl}
-                      href={`/coffee-store/${coffeeStore.id}`}
-                      className={styles.card}
-                    />
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
+        {(coffeeStores.length || null) && (
+          <div className={styles.sectionWrapper}>
+            <h2 className={styles.heading2}>Stores near me</h2>
+            <div className={styles.cardLayout}>
+              {coffeeStores.map(coffeeStore => {
+                return (
+                  <Card
+                    key={coffeeStore.id}
+                    name={coffeeStore.name}
+                    imgUrl={coffeeStore.imgUrl}
+                    href={`/coffee-store/${coffeeStore.id}`}
+                    className={styles.card}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {(props.coffeeStores?.length || null) && (
+          <div className={styles.sectionWrapper}>
+            <h2 className={styles.heading2}>Toronto stores</h2>
+            <div className={styles.cardLayout}>
+              {props.coffeeStores.map(coffeeStore => {
+                return (
+                  <Card
+                    key={coffeeStore.id}
+                    name={coffeeStore.name}
+                    imgUrl={coffeeStore.imgUrl}
+                    href={`/coffee-store/${coffeeStore.id}`}
+                    className={styles.card}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

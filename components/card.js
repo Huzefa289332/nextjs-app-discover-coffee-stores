@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import Image from 'next/image';
 import cls from 'classnames';
 import styles from '@/components/card.module.css';
 
@@ -14,8 +14,8 @@ const Card = props => {
           <Image
             className={styles.cardImage}
             src={props.imgUrl}
-            width={320}
-            height={200}
+            width={260}
+            height={160}
             alt={props.name}
           />
         </div>
