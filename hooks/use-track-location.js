@@ -1,22 +1,25 @@
-import { useState } from 'react';
+import { ACTION_TYPES, StoreContext } from '@/store/store-context';
+import { useContext, useState } from 'react';
 
 const useTrackLocation = () => {
   const [locationErrorMsg, setLocationErrorMsg] = useState('');
-  const [latLng, setLatLng] = useState('');
   const [isFindingLocation, setIsFindingLocation] = useState(false);
+  const { dispatch } = useContext(StoreContext);
 
   const success = position => {
     const latitude = position.coords.latitude;
     const longitude = position.coords.longitude;
 
-    setLatLng(`${latitude},${longitude}`);
+    dispatch({
+      type: ACTION_TYPES.SET_LAT_LNG,
+      payload: { latLng: `${latitude},${longitude}` },
+    });
     setLocationErrorMsg('');
     setIsFindingLocation(false);
   };
 
   const error = err => {
     setLocationErrorMsg('Unable to retrieve your location');
-    setLatLng('');
     setIsFindingLocation(false);
     console.log(err);
   };
@@ -25,7 +28,7 @@ const useTrackLocation = () => {
     setIsFindingLocation(true);
     if (!navigator.geolocation) {
       setLocationErrorMsg('Geolocation is not supported by your browser');
-      setLatLng('');
+
       setIsFindingLocation(false);
     } else {
       navigator.geolocation.getCurrentPosition(success, error);
@@ -33,7 +36,6 @@ const useTrackLocation = () => {
   };
 
   return {
-    latLng,
     handleTrackLocation,
     locationErrorMsg,
     isFindingLocation,

@@ -5,6 +5,8 @@ import styles from '@/styles/coffee-store.module.css';
 import Image from 'next/image';
 import cls from 'classnames';
 import { fetchCoffeeStores } from '@/lib/coffee-stores';
+import { useContext, useEffect, useState } from 'react';
+import { StoreContext } from '@/store/store-context';
 
 export async function getStaticProps({ params }) {
   const coffeeStores = await fetchCoffeeStores(
@@ -38,16 +40,32 @@ export async function getStaticPaths() {
   };
 }
 
-const CoffeeStore = props => {
+const CoffeeStore = initialProps => {
   const router = useRouter();
+  const {
+    state: { coffeeStores },
+  } = useContext(StoreContext);
+  const [coffeeStore, setCoffeeStore] = useState(initialProps.coffeeStore);
+
+  const id = router.query.id;
+
+  useEffect(() => {
+    if (!Object.keys(coffeeStore).length) {
+      if (coffeeStores.length) {
+        setCoffeeStore(
+          coffeeStores.find(coffeeStore => coffeeStore.id === id) || {}
+        );
+      }
+    }
+  }, [coffeeStore, coffeeStores, id]);
+
+  const { neighbourhood, address, name, imgUrl } = coffeeStore;
+
+  const handleUpvoteButton = () => {};
 
   if (router.isFallback) {
     return <div>Loading...</div>;
   }
-
-  const { neighbourhood, address, name, imgUrl } = props.coffeeStore;
-
-  const handleUpvoteButton = () => {};
 
   return (
     <div className={styles.layout}>
