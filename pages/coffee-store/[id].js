@@ -5,7 +5,7 @@ import styles from '@/styles/coffee-store.module.css';
 import Image from 'next/image';
 import cls from 'classnames';
 import { fetchCoffeeStores } from '@/lib/coffee-stores';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { StoreContext } from '@/store/store-context';
 
 export async function getStaticProps({ params }) {
@@ -42,22 +42,56 @@ export async function getStaticPaths() {
 
 const CoffeeStore = initialProps => {
   const router = useRouter();
+
   const {
-    state: { coffeeStores },
+    state: { coffeeStores: coffeeStoresFromContext },
   } = useContext(StoreContext);
+
   const [coffeeStore, setCoffeeStore] = useState(initialProps.coffeeStore);
+
+  const coffeeStoreFromStaticProps = useMemo(
+    () => initialProps.coffeeStore,
+    []
+  );
 
   const id = router.query.id;
 
-  useEffect(() => {
-    if (!Object.keys(coffeeStore).length) {
-      if (coffeeStores.length) {
-        setCoffeeStore(
-          coffeeStores.find(coffeeStore => coffeeStore.id === id) || {}
-        );
-      }
+  const handleCreateCoffeeStore = useCallback(async coffeeStore => {
+    try {
+      await fetch('/api/createCoffeeStore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...coffeeStore, voting: 0 }),
+      });
+    } catch (error) {
+      console.log('handleCreateCoffeeStore ==> ', error);
     }
-  }, [coffeeStore, coffeeStores, id]);
+  }, []);
+
+  useEffect(() => {
+    if (Object.keys(coffeeStoreFromStaticProps).length) {
+      handleCreateCoffeeStore(coffeeStoreFromStaticProps);
+      return;
+    }
+
+    if (!coffeeStoresFromContext.length) return;
+
+    const coffeeStoreFromContext = coffeeStoresFromContext.find(
+      coffeeStoreFromContext => coffeeStoreFromContext.id === id
+    );
+
+    if (!coffeeStoreFromContext) return;
+
+    setCoffeeStore(coffeeStoreFromContext);
+    handleCreateCoffeeStore(coffeeStoreFromContext);
+  }, [
+    id,
+    coffeeStoresFromContext,
+    coffeeStoreFromStaticProps,
+    handleCreateCoffeeStore,
+  ]);
 
   const { neighbourhood, address, name, imgUrl } = coffeeStore;
 
@@ -84,27 +118,43 @@ const CoffeeStore = initialProps => {
           </div>
 
           <Image
-            src={imgUrl}
+            src={imgUrl || '/static/placeholder.jpg'}
             width={600}
             height={360}
             className={styles.storeImg}
-            alt={name}
+            alt={name || 'store image'}
+            priority={true}
           />
         </div>
 
         <div className={cls('glass', styles.col2)}>
           <div className={styles.iconWrapper}>
-            <Image src="/static/icons/places.svg" width="24" height="24" />
+            <Image
+              alt="places icon"
+              src="/static/icons/places.svg"
+              width="24"
+              height="24"
+            />
             <p className={styles.text}>{address}</p>
           </div>
 
           <div className={styles.iconWrapper}>
-            <Image src="/static/icons/nearMe.svg" width="24" height="24" />
+            <Image
+              alt="near me icon"
+              src="/static/icons/nearMe.svg"
+              width="24"
+              height="24"
+            />
             <p className={styles.text}>{neighbourhood}</p>
           </div>
 
           <div className={styles.iconWrapper}>
-            <Image src="/static/icons/star.svg" width="24" height="24" />
+            <Image
+              alt="star icon"
+              src="/static/icons/star.svg"
+              width="24"
+              height="24"
+            />
             <p className={styles.text}>{1}</p>
           </div>
 

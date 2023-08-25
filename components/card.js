@@ -13,10 +13,11 @@ const Card = props => {
         <div className={styles.cardImageWrapper}>
           <Image
             className={styles.cardImage}
-            src={props.imgUrl}
+            src={props.imgUrl || '/static/placeholder.jpg'}
             width={260}
             height={160}
             alt={props.name}
+            priority={true}
           />
         </div>
       </div>

@@ -35,19 +35,28 @@ export default function Home(props) {
 
   useEffect(() => {
     (async () => {
-      if (latLng) {
-        try {
-          const coffeeStores = await fetchCoffeeStores(latLng, 'coffee', 30);
-          dispatch({
-            type: ACTION_TYPES.SET_COFFEE_STORES,
-            payload: { coffeeStores },
-          });
-        } catch (error) {
-          setCoffeeStoresError(error.message);
-        }
+      if (!latLng) return;
+
+      try {
+        const params = new URLSearchParams({ latLng, limit: 30 });
+
+        const response = await fetch(
+          `/api/getCoffeeStoresByLocation?${params}`
+        );
+
+        const coffeeStores = await response.json();
+
+        dispatch({
+          type: ACTION_TYPES.SET_COFFEE_STORES,
+          payload: { coffeeStores },
+        });
+
+        setCoffeeStoresError(null);
+      } catch (error) {
+        setCoffeeStoresError(error.message);
       }
     })();
-  }, [latLng]);
+  }, [latLng, ACTION_TYPES]);
 
   return (
     <div className={styles.container}>
@@ -71,6 +80,7 @@ export default function Home(props) {
             width={700}
             height={400}
             alt="Sitting on confortable chair with a cup of coffee in hand"
+            priority={true}
           />
         </div>
 
