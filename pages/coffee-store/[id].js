@@ -7,6 +7,7 @@ import cls from 'classnames';
 import { fetchCoffeeStores } from '@/lib/coffee-stores';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { StoreContext } from '@/store/store-context';
+import useSWR from 'swr';
 
 export async function getStaticProps({ params }) {
   const coffeeStores = await fetchCoffeeStores(
@@ -47,14 +48,28 @@ const CoffeeStore = initialProps => {
     state: { coffeeStores: coffeeStoresFromContext },
   } = useContext(StoreContext);
 
-  const [coffeeStore, setCoffeeStore] = useState(initialProps.coffeeStore);
-
-  const coffeeStoreFromStaticProps = useMemo(
-    () => initialProps.coffeeStore,
-    []
+  const [coffeeStore, setCoffeeStore] = useState(
+    initialProps.coffeeStore || {}
   );
 
+  const coffeeStoreFromStaticProps = useMemo(
+    () => initialProps.coffeeStore || {},
+    [initialProps]
+  );
+
+  const [votingCount, setVotingCount] = useState(0);
+
   const id = router.query.id;
+
+  const { data, error, isLoading } = useSWR(
+    `/api/getCoffeeStoreById?id=${id}`,
+    url => fetch(url).then(r => r.json())
+  );
+
+  useEffect(() => {
+    setVotingCount(data?.[0]?.voting || 0);
+    setCoffeeStore(data?.[0] || {});
+  }, [data]);
 
   const handleCreateCoffeeStore = useCallback(async coffeeStore => {
     try {
@@ -93,12 +108,34 @@ const CoffeeStore = initialProps => {
     handleCreateCoffeeStore,
   ]);
 
-  const { neighbourhood, address, name, imgUrl } = coffeeStore;
+  const handleUpvoteButton = async () => {
+    try {
+      const response = await fetch('/api/favouriteCoffeeStoreById', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
 
-  const handleUpvoteButton = () => {};
+      const stores = await response.json();
+
+      if (stores.length) {
+        setVotingCount(state => state + 1);
+      }
+    } catch (error) {
+      console.log('handleUpvoteButton ==> ', error);
+    }
+  };
+
+  const { neighbourhood, address, name, imgUrl } = coffeeStore;
 
   if (router.isFallback) {
     return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Something went wrong retrieving coffee store page</div>;
   }
 
   return (
@@ -155,7 +192,7 @@ const CoffeeStore = initialProps => {
               width="24"
               height="24"
             />
-            <p className={styles.text}>{1}</p>
+            <p className={styles.text}>{votingCount}</p>
           </div>
 
           <button className={styles.upvoteButton} onClick={handleUpvoteButton}>
