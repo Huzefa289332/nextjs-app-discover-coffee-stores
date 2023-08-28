@@ -61,9 +61,8 @@ const CoffeeStore = initialProps => {
 
   const id = router.query.id;
 
-  const { data, error, isLoading } = useSWR(
-    `/api/getCoffeeStoreById?id=${id}`,
-    url => fetch(url).then(r => r.json())
+  const { data, error } = useSWR(`/api/getCoffeeStoreById?id=${id}`, url =>
+    fetch(url).then(r => r.json())
   );
 
   useEffect(() => {
